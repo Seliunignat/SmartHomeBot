@@ -53,13 +53,14 @@ public class SmartHomeBot extends TelegramLongPollingBot {
 
                 if(COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())) {
                     Client client = ClientBuilder.newClient();
-                    Response response = client.target("http://blynk-cloud.com/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
+                    Response response = client.target("http://" + ENV.get("IP_ADDRESS") +"/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
                             .request(MediaType.TEXT_PLAIN_TYPE)
                             .get();
 
                     System.out.println("status: " + response.getStatus());
                     System.out.println("headers: " + response.getHeaders());
                     System.out.println("body:" + response.readEntity(String.class));
+                    response.close();
                 }
                 else if(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())){
                     try {
