@@ -1,4 +1,5 @@
 import com.github.realzimboguy.ewelink.api.EweLink;
+import com.github.realzimboguy.ewelink.api.model.Status;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -30,6 +31,11 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         this.listOfAdmins = listOfAdmins;
         this.ewelink = eweLink;
         this.COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES = commands_id_status_for_ewelink_devices;
+        try {
+            sendCustomMessage();
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
     public String getBotUsername() {
@@ -44,6 +50,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         Date dateNow = new Date();
         SimpleDateFormat formatForDateNow = new SimpleDateFormat("dd.MM.yyyy hh:mm a");
         Message message = update.getMessage();
+
         if(message != null && message.hasText()){
             try {
                 System.out.print(formatForDateNow.format(dateNow) + " ");
@@ -52,60 +59,28 @@ public class SmartHomeBot extends TelegramLongPollingBot {
                         + message.getFrom().getId() + ")" + ": " + message.getText());
 
                 if(COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())) {
-                    Client client = ClientBuilder.newClient();
-                    Response response = client.target("http://" + ENV.get("IP_ADDRESS") +"/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
-                            .request(MediaType.TEXT_PLAIN_TYPE)
-                            .get();
-
-                    System.out.println("status: " + response.getStatus());
-                    System.out.println("headers: " + response.getHeaders());
-                    System.out.println("body:" + response.readEntity(String.class));
-                    response.close();
+                    //call the method that will work with requests for blynk
+                    blynkDeviceSendRequest(message);
                 }
                 else if(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())){
-                    try {
-                        ewelink.setDeviceStatus(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()).getKey(), COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()).getValue());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    //call the method that will work with requests for ewelink
+                    ewelinkDeviceSendRequest(message);
                 }
-
+                //echo message
                 SendMessage sendMessage = new SendMessage(Long.toString(message.getChatId()), "Вы написали: " + message.getText());
                 setButtons(sendMessage);
                 execute(sendMessage);
-
-                switch (message.getText()){
-//                    case "Статус гирлянды":
-//                    {
-//                        Client client = ClientBuilder.newClient();
-//                        Response response = client.target("http://blynk-cloud.com/" + blynkAuthToken + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
-//                                .request(MediaType.TEXT_PLAIN_TYPE)
-//                                .get();
-//
-//                        System.out.println("status: " + response.getStatus());
-//                        System.out.println("headers: " + response.getHeaders());
-//                        System.out.println("body:" + response.readEntity(String.class));
-//                        break;
-//                    }
-//                    case "Включить гирлянду":
-//                    {
-//                        Client client = ClientBuilder.newClient();
-//                        Response response = client.target("http://blynk-cloud.com/" + blynkAuthToken + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
-//                                .request(MediaType.TEXT_PLAIN_TYPE)
-//                                .get();
-//
-//                        System.out.println("status: " + response.getStatus());
-//                        System.out.println("headers: " + response.getHeaders());
-//                        System.out.println("body:" + response.readEntity(String.class));
-//                        break;
-//                    }
-                    default: break;
-                }
 
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void sendCustomMessage() throws TelegramApiException {
+//        SendMessage sendMessage = new SendMessage(, );
+//        setButtons(sendMessage);
+//        execute(sendMessage);
     }
 
     public void setButtons(SendMessage sendMessage){
@@ -129,5 +104,81 @@ public class SmartHomeBot extends TelegramLongPollingBot {
             keyboardRowList.add(keyboardRow);
         }
         replyKeyboardMarkup.setKeyboard(keyboardRowList);
+    }
+
+    private void blynkDeviceSendRequest(Message message) throws TelegramApiException {
+        Client client = ClientBuilder.newClient();
+        Response response = client.target("http://" + ENV.get("IP_ADDRESS") +"/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
+                .request(MediaType.TEXT_PLAIN_TYPE)
+                .get();
+
+        String response_entity_string = response.readEntity(String.class);
+
+        System.out.println("status: " + response.getStatus());
+        System.out.println("headers: " + response.getHeaders());
+        System.out.println("body:" + response_entity_string);
+
+        if(message.getText().toLowerCase().startsWith("статус"))
+        {
+            //the method that will process th status requests
+            statusOfBlynkDeviceSendMessage(message, response_entity_string);
+        }
+
+        response.close();
+    }
+
+    private void ewelinkDeviceSendRequest(Message message) {
+        if(message.getText().toLowerCase().startsWith("статус")) {
+            //the method that will process th status requests
+            statusOfEwelinkDeviceSendMessage(message);
+        } else {
+            try {
+                ewelink.setDeviceStatus(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()).getKey(), COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()).getValue());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void statusOfBlynkDeviceSendMessage(Message message, String response_entity_string) throws TelegramApiException {
+        String status;
+        switch (response_entity_string) {
+            case "[\"0\"]":
+                status = "Выключен(а)";
+                break;
+            case "[\"1\"]":
+                status = "Включен(а)";
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + response_entity_string);
+        }
+
+        SendMessage sendMessage = new SendMessage(Long.toString(message.getChatId()), status);
+        setButtons(sendMessage);
+        execute(sendMessage);
+    }
+
+    private void statusOfEwelinkDeviceSendMessage(Message message) {
+        String statusMessage;
+        try {
+            Status status = ewelink.getDeviceStatus(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()).getKey());
+            String switchValue = status.getParams().getSwitchValue();
+            switch (switchValue) {
+                case "off":
+                    statusMessage = "Выключен(а)";
+                    break;
+                case "on":
+                    statusMessage = "Включен(а)";
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + switchValue);
+            }
+
+            SendMessage sendMessage = new SendMessage(Long.toString(message.getChatId()), statusMessage);
+            setButtons(sendMessage);
+            execute(sendMessage);
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
     }
 }

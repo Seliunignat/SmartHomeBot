@@ -57,10 +57,9 @@ public class Main {
         COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.put("Статус настольной лампы", "/get/V3");
         COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.put("Статус цветной лампы", "/get/V2");
         COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES = new HashMap<>();
-        COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Включить свет на терассе",
-                new AbstractMap.SimpleEntry<String, String>(ENV.get("DEVICE_TERRACE_ID"), DEVICE_STATUS_ON) {
-                });
-        COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Выключить свет на терассе",
+        COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Включить свет на террасе",
+                new AbstractMap.SimpleEntry<String, String>(ENV.get("DEVICE_TERRACE_ID"), DEVICE_STATUS_ON));
+        COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Выключить свет на террасе",
                 new AbstractMap.SimpleEntry<>(ENV.get("DEVICE_TERRACE_ID"), DEVICE_STATUS_OFF));
         COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Включить свет на крыльце",
                 new AbstractMap.SimpleEntry<>(ENV.get("DEVICE_PORCH_ID"), DEVICE_STATUS_ON));
@@ -69,6 +68,12 @@ public class Main {
         COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Включить свет под навесом",
                 new AbstractMap.SimpleEntry<>(ENV.get("DEVICE_CANOPY_ID"), DEVICE_STATUS_ON));
         COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Выключить свет под навесом",
+                new AbstractMap.SimpleEntry<>(ENV.get("DEVICE_CANOPY_ID"), DEVICE_STATUS_OFF));
+        COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Статус террасы",
+                new AbstractMap.SimpleEntry<>(ENV.get("DEVICE_TERRACE_ID"), DEVICE_STATUS_OFF));
+        COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Статус крыльца",
+                new AbstractMap.SimpleEntry<>(ENV.get("DEVICE_PORCH_ID"), DEVICE_STATUS_OFF));
+        COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.put("Статус навеса",
                 new AbstractMap.SimpleEntry<>(ENV.get("DEVICE_CANOPY_ID"), DEVICE_STATUS_OFF));
 
     }
