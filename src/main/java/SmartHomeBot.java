@@ -24,7 +24,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
     private List<Long> listOfAdmins;
     private EweLink ewelink;
 
-    public SmartHomeBot(Map<String, String> ENV, Map<String, String> commands_and_requests_for_blynk_devices, List<Long> listOfAdmins, EweLink eweLink, Map<String, Map.Entry<String, String>> commands_id_status_for_ewelink_devices) {
+    public SmartHomeBot(Map<String, String> ENV, Map<String, String> commands_and_requests_for_blynk_devices, List<Long> listOfAdmins, EweLink eweLink, Map<String, Map.Entry<String, String>> commands_id_status_for_ewelink_devices){
         this.ENV = ENV;
         this.COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES = commands_and_requests_for_blynk_devices;
         this.listOfAdmins = listOfAdmins;
@@ -44,26 +44,25 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         Date dateNow = new Date();
         SimpleDateFormat formatForDateNow = new SimpleDateFormat("dd.MM.yyyy hh:mm a");
         Message message = update.getMessage();
-        if (message != null && message.hasText()) {
+        if(message != null && message.hasText()){
             try {
                 System.out.print(formatForDateNow.format(dateNow) + " ");
                 System.out.println(message.getFrom().getFirstName() + " " + message.getFrom().getLastName()
                         + " (@" + message.getFrom().getUserName() + ", id: "
                         + message.getFrom().getId() + ")" + ": " + message.getText());
 
-                if (COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())) {
+                if(COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())) {
                     Client client = ClientBuilder.newClient();
-                    try (Response response = client.target("http://blynk-cloud.com/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
+                    Response response = client.target("http://" + ENV.get("IP_ADDRESS") +"/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
                             .request(MediaType.TEXT_PLAIN_TYPE)
-                            .get()) {
+                            .get();
 
-                        System.out.println("status: " + response.getStatus());
-                        System.out.println("headers: " + response.getHeaders());
-                        System.out.println("body:" + response.readEntity(String.class));
-                    } catch (Exception exception) {
-                        System.out.println(exception.getMessage());
-                    }
-                } else if (COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())) {
+                    System.out.println("status: " + response.getStatus());
+                    System.out.println("headers: " + response.getHeaders());
+                    System.out.println("body:" + response.readEntity(String.class));
+                    response.close();
+                }
+                else if(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())){
                     try {
                         ewelink.setDeviceStatus(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()).getKey(), COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()).getValue());
                     } catch (Exception e) {
@@ -75,7 +74,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
                 setButtons(sendMessage);
                 execute(sendMessage);
 
-                switch (message.getText()) {
+                switch (message.getText()){
 //                    case "Статус гирлянды":
 //                    {
 //                        Client client = ClientBuilder.newClient();
@@ -100,8 +99,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
 //                        System.out.println("body:" + response.readEntity(String.class));
 //                        break;
 //                    }
-                    default:
-                        break;
+                    default: break;
                 }
 
             } catch (TelegramApiException e) {
@@ -110,7 +108,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         }
     }
 
-    public void setButtons(SendMessage sendMessage) {
+    public void setButtons(SendMessage sendMessage){
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         replyKeyboardMarkup.setSelective(true);
