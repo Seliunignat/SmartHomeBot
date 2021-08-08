@@ -1,5 +1,6 @@
 import com.github.realzimboguy.ewelink.api.EweLink;
 import com.github.realzimboguy.ewelink.api.model.Status;
+import org.glassfish.jersey.server.monitoring.ResponseMXBean;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -59,8 +60,14 @@ public class SmartHomeBot extends TelegramLongPollingBot {
                         + message.getFrom().getId() + ")" + ": " + message.getText());
 
                 if(COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())) {
-                    //call the method that will work with requests for blynk
-                    blynkDeviceSendRequest(message);
+                    if(checkBlynkHardwareConnection()) {
+                        //call the method that will work with requests for blynk
+                        blynkDeviceSendRequest(message);
+                    } else {
+                        SendMessage sendMessage = new SendMessage(Long.toString(message.getChatId()), "Устройство офлайн(");
+                        setButtons(sendMessage);
+                        execute(sendMessage);
+                    }
                 }
                 else if(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())){
                     //call the method that will work with requests for ewelink
@@ -104,6 +111,16 @@ public class SmartHomeBot extends TelegramLongPollingBot {
             keyboardRowList.add(keyboardRow);
         }
         replyKeyboardMarkup.setKeyboard(keyboardRowList);
+    }
+
+    private boolean checkBlynkHardwareConnection() {
+        Client client = ClientBuilder.newClient();
+        Response response = client.target("http://" + ENV.get("IP_ADDRESS") +"/" + ENV.get("BLYNK_AUTH_TOKEN") + "/isHardwareConnected")
+                .request(MediaType.TEXT_PLAIN_TYPE)
+                .get();
+
+        Boolean responseBoolean = response.readEntity(Boolean.class);
+        return responseBoolean;
     }
 
     private void blynkDeviceSendRequest(Message message) throws TelegramApiException {
