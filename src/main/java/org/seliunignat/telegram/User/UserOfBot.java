@@ -13,6 +13,7 @@ public class UserOfBot {
     private Boolean isAdmin = false;
 
     public UserOfBot() {
+
     }
 
     public UserOfBot(Long userId, String firstName, String lastName, String username) {
@@ -20,6 +21,8 @@ public class UserOfBot {
         this.firstName = firstName;
         this.lastName = lastName;
         this.username = username;
+        if(userId == (Long.parseLong(System.getenv("ADMIN_ID"))))
+            this.isAdmin = true;
     }
 
     public Document toDocument() {
