@@ -1,3 +1,6 @@
-Main.class
-SmartHomeBot.class
-BlynkDevices.class
+org\seliunignat\telegram\SmartHomeBot\SmartHomeBot.class
+org\seliunignat\telegram\Device\BlynkDevice.class
+org\seliunignat\telegram\Device\EweLinkDevice.class
+org\seliunignat\telegram\MongoDB\MongoDB.class
+org\seliunignat\telegram\Main.class
+org\seliunignat\telegram\User\UserOfBot.class

@@ -1,3 +1,7 @@
+package org.seliunignat.telegram;
+import org.seliunignat.telegram.SmartHomeBot.*;
+import org.seliunignat.telegram.MongoDB.*;
+
 import com.github.realzimboguy.ewelink.api.EweLink;
 import com.github.realzimboguy.ewelink.api.model.devices.DeviceItem;
 import com.github.realzimboguy.ewelink.api.model.devices.Devices;
@@ -25,11 +29,12 @@ public class Main {
     private static Devices devices;
     private static final String DEVICE_STATUS_ON = "on";
     private static final String DEVICE_STATUS_OFF = "off";
+    private static MongoDB mongoDB;
 
     public static void main(String[] args) throws TelegramApiException {
         ENV = System.getenv();
         loadData();
-        connectMongo();
+        mongoDB = new MongoDB();
         try {
             loadEwelink();
         } catch (Exception e) {
@@ -39,7 +44,10 @@ public class Main {
 
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
         try {
-            telegramBotsApi.registerBot(new SmartHomeBot(ENV, COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES, listOfAdmins, eweLink, COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES));
+            telegramBotsApi.registerBot(
+                    new SmartHomeBot(
+                            ENV, COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES,
+                            listOfAdmins, eweLink, COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES, mongoDB));
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
