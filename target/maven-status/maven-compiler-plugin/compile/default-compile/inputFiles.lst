@@ -1,3 +1,6 @@
-C:\Documents\Programming\Java\SmartHomeBot\src\main\java\BlynkDevices.java
-C:\Documents\Programming\Java\SmartHomeBot\src\main\java\Main.java
-C:\Documents\Programming\Java\SmartHomeBot\src\main\java\SmartHomeBot.java
+C:\Documents\Programming\Java\SmartHomeBot\src\main\java\org\seliunignat\telegram\User\UserOfBot.java
+C:\Documents\Programming\Java\SmartHomeBot\src\main\java\org\seliunignat\telegram\Device\BlynkDevice.java
+C:\Documents\Programming\Java\SmartHomeBot\src\main\java\org\seliunignat\telegram\Main.java
+C:\Documents\Programming\Java\SmartHomeBot\src\main\java\org\seliunignat\telegram\Device\EweLinkDevice.java
+C:\Documents\Programming\Java\SmartHomeBot\src\main\java\org\seliunignat\telegram\MongoDB\MongoDB.java
+C:\Documents\Programming\Java\SmartHomeBot\src\main\java\org\seliunignat\telegram\SmartHomeBot\SmartHomeBot.java

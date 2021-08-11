@@ -1,6 +1,10 @@
+package org.seliunignat.telegram.SmartHomeBot;
+import org.bson.Document;
+import org.seliunignat.telegram.MongoDB.*;
+
 import com.github.realzimboguy.ewelink.api.EweLink;
 import com.github.realzimboguy.ewelink.api.model.Status;
-import org.glassfish.jersey.server.monitoring.ResponseMXBean;
+import org.seliunignat.telegram.User.UserOfBot;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -25,13 +29,15 @@ public class SmartHomeBot extends TelegramLongPollingBot {
     private Map<String, Map.Entry<String, String>> COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES;
     private List<Long> listOfAdmins;
     private EweLink ewelink;
+    private MongoDB mongoDB;
 
-    public SmartHomeBot(Map<String, String> ENV, Map<String, String> commands_and_requests_for_blynk_devices, List<Long> listOfAdmins, EweLink eweLink, Map<String, Map.Entry<String, String>> commands_id_status_for_ewelink_devices){
+    public SmartHomeBot(Map<String, String> ENV, Map<String, String> commands_and_requests_for_blynk_devices, List<Long> listOfAdmins, EweLink eweLink, Map<String, Map.Entry<String, String>> commands_id_status_for_ewelink_devices, MongoDB receivedMongoDB){
         this.ENV = ENV;
         this.COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES = commands_and_requests_for_blynk_devices;
         this.listOfAdmins = listOfAdmins;
         this.ewelink = eweLink;
         this.COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES = commands_id_status_for_ewelink_devices;
+        mongoDB = receivedMongoDB;
         try {
             sendCustomMessage();
         } catch (TelegramApiException e) {
@@ -59,7 +65,17 @@ public class SmartHomeBot extends TelegramLongPollingBot {
                         + " (@" + message.getFrom().getUserName() + ", id: "
                         + message.getFrom().getId() + ")" + ": " + message.getText());
 
-                if(COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())) {
+                UserOfBot user;
+
+                Document foundUserDocument = mongoDB.getUsersCollection().find(new Document("userId", update.getMessage().getFrom().getId())).first();
+                if(foundUserDocument != null) {
+                    user = UserOfBot.documentToUser(foundUserDocument);
+                } else {
+                    System.out.println("User wasn't found!");
+                    user = mongoDB.saveUser(UserOfBot.telegramUserToUserOfBot(update.getMessage().getFrom()));
+                }
+
+                if(COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && user.getAdmin()) {
                     if(checkBlynkHardwareConnection()) {
                         //call the method that will work with requests for blynk
                         blynkDeviceSendRequest(message);
@@ -98,14 +114,12 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         replyKeyboardMarkup.setOneTimeKeyboard(false);
 
         List<KeyboardRow> keyboardRowList = new ArrayList<KeyboardRow>();
-        for (String command :
-                COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.keySet()) {
+        for (String command : COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.keySet()) {
             KeyboardRow keyboardRow = new KeyboardRow();
             keyboardRow.add(new KeyboardButton(command));
             keyboardRowList.add(keyboardRow);
         }
-        for (String command :
-                COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.keySet()) {
+        for (String command : COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.keySet()) {
             KeyboardRow keyboardRow = new KeyboardRow();
             keyboardRow.add(new KeyboardButton(command));
             keyboardRowList.add(keyboardRow);
