@@ -13,7 +13,6 @@ public class UserOfBot {
     private Boolean isAdmin = false;
 
     public UserOfBot() {
-
     }
 
     public UserOfBot(Long userId, String firstName, String lastName, String username) {
