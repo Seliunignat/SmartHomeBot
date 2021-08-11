@@ -84,8 +84,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
                         setButtons(sendMessage);
                         execute(sendMessage);
                     }
-                }
-                else if(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && listOfAdmins.contains(message.getFrom().getId())){
+                } else if(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && user.getAdmin()){
                     //call the method that will work with requests for ewelink
                     ewelinkDeviceSendRequest(message);
                 }
