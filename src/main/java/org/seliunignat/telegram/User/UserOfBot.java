@@ -12,7 +12,7 @@ public class UserOfBot {
     private String username = null;
     private Boolean isAdmin = false;
 
-    public UserOfBot() {
+    private UserOfBot() {
 
     }
 
@@ -22,6 +22,8 @@ public class UserOfBot {
         this.lastName = lastName;
         this.username = username;
     }
+
+
 
     public Document toDocument() {
         Document document = new Document();

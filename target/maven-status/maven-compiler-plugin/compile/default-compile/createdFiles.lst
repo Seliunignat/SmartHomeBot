@@ -1,4 +1,5 @@
 org\seliunignat\telegram\SmartHomeBot\SmartHomeBot.class
+org\seliunignat\telegram\Device\BlynkDevice$DeviceStatus.class
 org\seliunignat\telegram\Device\BlynkDevice.class
 org\seliunignat\telegram\Device\EweLinkDevice.class
 org\seliunignat\telegram\MongoDB\MongoDB.class

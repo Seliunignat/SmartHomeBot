@@ -1,4 +1,5 @@
 package org.seliunignat.telegram.SmartHomeBot;
+
 import org.bson.Document;
 import org.seliunignat.telegram.MongoDB.*;
 
@@ -21,6 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SmartHomeBot extends TelegramLongPollingBot {
 
@@ -31,7 +33,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
     private EweLink ewelink;
     private MongoDB mongoDB;
 
-    public SmartHomeBot(Map<String, String> ENV, Map<String, String> commands_and_requests_for_blynk_devices, List<Long> listOfAdmins, EweLink eweLink, Map<String, Map.Entry<String, String>> commands_id_status_for_ewelink_devices, MongoDB receivedMongoDB){
+    public SmartHomeBot(Map<String, String> ENV, Map<String, String> commands_and_requests_for_blynk_devices, List<Long> listOfAdmins, EweLink eweLink, Map<String, Map.Entry<String, String>> commands_id_status_for_ewelink_devices, MongoDB receivedMongoDB) {
         this.ENV = ENV;
         this.COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES = commands_and_requests_for_blynk_devices;
         this.listOfAdmins = listOfAdmins;
@@ -58,7 +60,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         SimpleDateFormat formatForDateNow = new SimpleDateFormat("dd.MM.yyyy hh:mm a");
         Message message = update.getMessage();
 
-        if(message != null && message.hasText()){
+        if (message != null && message.hasText()) {
             try {
                 System.out.print(formatForDateNow.format(dateNow) + " ");
                 System.out.println(message.getFrom().getFirstName() + " " + message.getFrom().getLastName()
@@ -68,15 +70,52 @@ public class SmartHomeBot extends TelegramLongPollingBot {
                 UserOfBot user;
 
                 Document foundUserDocument = mongoDB.getUsersCollection().find(new Document("userId", update.getMessage().getFrom().getId())).first();
-                if(foundUserDocument != null) {
+                if (foundUserDocument != null) {
                     user = UserOfBot.documentToUser(foundUserDocument);
                 } else {
                     System.out.println("User wasn't found!");
                     user = mongoDB.saveUser(UserOfBot.telegramUserToUserOfBot(update.getMessage().getFrom()));
                 }
+                //server requests
+                if (message.getText().startsWith("/")) {
+                    String messageText = message.getText();
+                    if (user.getAdmin()) {
+                        //simple requests
+                        switch (messageText) {
+                            case "/users": {
+                                if (user.getAdmin())
+                                    sendAllUsers(user.getUserId());
+                                break;
+                            }
+                        }
+                        //requests with param
+                        if (messageText.startsWith("/op/")) {
+                            String userIdString = messageText.split("/")[2];
+                            Long userId = null;
+                            try {
+                                userId = Long.parseLong(userIdString);
+                            } catch (Exception e) {
+                                System.out.println(e.getMessage());
+                            }
+                            if (userId != null) {
+                                opUser(userId);
+                            }
+                        } else if (messageText.startsWith("/deop/")) {
+                            String userIdString = messageText.split("/")[2];
+                            Long userId = null;
+                            try {
+                                userId = Long.parseLong(userIdString);
+                            } catch (Exception e) {
+                                System.out.println(e.getMessage());
+                            }
+                            if (userId != null && !userId.equals(user.getUserId())) {
+                                deOpUser(userId);
+                            }
+                        }
+                    }
 
-                if(COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && user.getAdmin()) {
-                    if(checkBlynkHardwareConnection()) {
+                } else if (COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()) != null && user.getAdmin()) {
+                    if (checkBlynkHardwareConnection()) {
                         //call the method that will work with requests for blynk
                         blynkDeviceSendRequest(message);
                     } else {
@@ -84,7 +123,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
                         setButtons(sendMessage);
                         execute(sendMessage);
                     }
-                } else if(COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && user.getAdmin()){
+                } else if (COMMANDS_ID_STATUS_FOR_EWELINK_DEVICES.get(message.getText()) != null && user.getAdmin()) {
                     //call the method that will work with requests for ewelink
                     ewelinkDeviceSendRequest(message);
                 }
@@ -105,7 +144,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
 //        execute(sendMessage);
     }
 
-    public void setButtons(SendMessage sendMessage){
+    public void setButtons(SendMessage sendMessage) {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         replyKeyboardMarkup.setSelective(true);
@@ -126,9 +165,51 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         replyKeyboardMarkup.setKeyboard(keyboardRowList);
     }
 
+    private String getAllUsers() {
+        String response = "";
+        String separator = "--------------------------------------------------";
+        List<UserOfBot> users = MongoDB.getAllUsers();
+        for (UserOfBot user : users) {
+            String userInfo = "";
+            userInfo += "TgId: " + user.getUserId() + "\n";
+            userInfo += "FirstName: " + user.getFirstName() + "\n";
+            userInfo += "LastName: " + user.getLastName() + "\n";
+            userInfo += "Username: " + user.getUsername() + "\n";
+            userInfo += "IsAdmin: " + user.getAdmin() + "\n";
+            response += userInfo + separator + "\n";
+        }
+        return response;
+    }
+
+    private void sendAllUsers(Long chatId) {
+        try {
+            SendMessage sendMessage = new SendMessage(Long.toString(chatId), getAllUsers());
+            setButtons(sendMessage);
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void opUser(Long userIdToOp) {
+        UserOfBot userToOp = MongoDB.getUserByUserId(userIdToOp);
+        if (!userToOp.getAdmin()) {
+            userToOp.setAdmin(true);
+            MongoDB.updateUser(userToOp);
+        }
+    }
+
+    private void deOpUser(Long userIdToDeOp) {
+        UserOfBot userToDeOp = MongoDB.getUserByUserId(userIdToDeOp);
+        if (userToDeOp.getAdmin()) {
+            userToDeOp.setAdmin(false);
+            MongoDB.updateUser(userToDeOp);
+        }
+    }
+
     private boolean checkBlynkHardwareConnection() {
         Client client = ClientBuilder.newClient();
-        Response response = client.target("http://" + ENV.get("IP_ADDRESS") +"/" + ENV.get("BLYNK_AUTH_TOKEN") + "/isHardwareConnected")
+        Response response = client.target("http://" + ENV.get("IP_ADDRESS") + "/" + ENV.get("BLYNK_AUTH_TOKEN") + "/isHardwareConnected")
                 .request(MediaType.TEXT_PLAIN_TYPE)
                 .get();
 
@@ -138,7 +219,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
 
     private void blynkDeviceSendRequest(Message message) throws TelegramApiException {
         Client client = ClientBuilder.newClient();
-        Response response = client.target("http://" + ENV.get("IP_ADDRESS") +"/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
+        Response response = client.target("http://" + ENV.get("IP_ADDRESS") + "/" + ENV.get("BLYNK_AUTH_TOKEN") + COMMANDS_AND_REQUESTS_FOR_BLYNK_DEVICES.get(message.getText()))
                 .request(MediaType.TEXT_PLAIN_TYPE)
                 .get();
 
@@ -148,8 +229,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
         System.out.println("headers: " + response.getHeaders());
         System.out.println("body:" + response_entity_string);
 
-        if(message.getText().toLowerCase().startsWith("статус"))
-        {
+        if (message.getText().toLowerCase().startsWith("статус")) {
             //the method that will process th status requests
             statusOfBlynkDeviceSendMessage(message, response_entity_string);
         }
@@ -158,7 +238,7 @@ public class SmartHomeBot extends TelegramLongPollingBot {
     }
 
     private void ewelinkDeviceSendRequest(Message message) {
-        if(message.getText().toLowerCase().startsWith("статус")) {
+        if (message.getText().toLowerCase().startsWith("статус")) {
             //the method that will process th status requests
             statusOfEwelinkDeviceSendMessage(message);
         } else {
